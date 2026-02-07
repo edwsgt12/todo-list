@@ -2,6 +2,7 @@ import { use, useEffect, useState } from "react";
 import { VscDebugBreakpointUnsupported } from "react-icons/vsc";
 import TaskInput from "./TaskImput";
 import TaskList from "./TaskList";  
+import Spinner from "./spiner";
 
 export interface ITask {
     id: number;
@@ -38,29 +39,44 @@ const TaskManager = () => {
     }, []);
 
     const addTask = async (title: string) => {
-        const newTask = {
-            id: task.length + 1,
-            tx_name: title,
-            st_status: false,
+        try {
+            await fetch(INSERT_LIST_URL , {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ tx_name: title, st_status: false }),
+        });
+            fetchTasks();
+        } catch (e) {
+            console.error("Error adding task", e);
+        }
         };
-        setTask([...task, newTask]);
-    };
 
-    const toggleTaskCompletion = (id: number) => {
-        setTask(
-            task.map((task)=>
-            task.id === id ? {...task, st_status: !task.st_status }: task
-        )
-     );
+    const toggleTaskCompletion = async (id: number) => {
+        try {
+            const taskToUpdate = task.find((t) => t.id === id);
+            if (!taskToUpdate) return;
+            await fetch(UPDATE_LIST_URL, {
+                method: "PUT",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ id, st_status: !taskToUpdate.st_status, tx_name: taskToUpdate.tx_name }),
+            });
+            fetchTasks();
+        } catch (e) {
+            console.error("Error toggling task completion", e);
+        }
     };
 
     return (
         <div className="flex flex-col items-center gap-y-6 p-6 max-w-md mx-auto bg-white rounded-x1 shadow-lg min-w-[40%]">
-            <h1 className="text-3x1 font-bold text-indigo-700">Gestor de tareas</h1>
+            <h1 className="text-3x1 font-bold text-indigo-700">Gestor de tareas 📖</h1>
 
             <TaskInput addTask={addTask}/>
 
+            {loading ? (
+                <div className="flex justify-center items-center w-full p-10"> <Spinner /> </div>
+            ) : (
             <TaskList tasks={task} toggleTaskCompletion={toggleTaskCompletion}/>
+            )}
         </div>
     );
 }; 
